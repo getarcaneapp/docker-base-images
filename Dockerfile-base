@@ -1,0 +1,7 @@
+# syntax=docker/dockerfile:1
+
+FROM dhi.io/debian-base:trixie
+
+LABEL org.opencontainers.image.title="Arcane Base"
+LABEL org.opencontainers.image.description="Arcane base image built on dhi.io/debian-base:trixie"
+LABEL org.opencontainers.image.source="https://github.com/getarcaneapp/arcane"
