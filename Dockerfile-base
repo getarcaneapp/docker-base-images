@@ -1,6 +1,23 @@
 # syntax=docker/dockerfile:1
 
+ARG TARGETARCH
+
 FROM dhi.io/debian-base:trixie
+
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends \
+		curl \
+		tzdata \
+		tar \
+		vainfo \
+		clinfo \
+		libdrm2 \
+		libsystemd0 \
+	&& if [ "$TARGETARCH" = "amd64" ]; then \
+		apt-get install -y --no-install-recommends intel-gpu-tools; \
+	fi \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/*
 
 LABEL org.opencontainers.image.title="Arcane Base"
 LABEL org.opencontainers.image.description="Arcane base image built on dhi.io/debian-base:trixie"

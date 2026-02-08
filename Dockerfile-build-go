@@ -1,0 +1,12 @@
+# syntax=docker/dockerfile:1
+
+FROM dhi.io/golang:1.25-dev
+
+ENV GOPATH=/go
+ENV PATH=/usr/local/go/bin:$PATH
+
+WORKDIR /workspace
+
+LABEL org.opencontainers.image.title="Arcane Go Build"
+LABEL org.opencontainers.image.description="Arcane build image with dhi go-dev toolchain"
+LABEL org.opencontainers.image.source="https://github.com/getarcaneapp/arcane"
