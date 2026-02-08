@@ -2,6 +2,11 @@
 
 FROM dhi.io/node:25-dev
 
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends jq \
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/*
+
 WORKDIR /workspace
 
 LABEL org.opencontainers.image.title="Arcane Node Build"
