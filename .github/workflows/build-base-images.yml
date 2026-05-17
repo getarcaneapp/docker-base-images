@@ -25,8 +25,6 @@ jobs:
 
         env:
             BASE_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/base
-            NODE_BUILD_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/build-node
-            GO_BUILD_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/build-go
 
         steps:
             - name: Checkout code
@@ -69,45 +67,5 @@ jobs:
                   platforms: linux/amd64,linux/arm64
                   push: ${{ github.event_name != 'pull_request_target' }}
                   tags: ${{ steps.base-meta.outputs.tags }}
-                  sbom: true
-                  provenance: true
-
-            - name: Node build image metadata
-              id: node-build-meta
-              uses: docker/metadata-action@v5
-              with:
-                  images: ${{ env.NODE_BUILD_IMAGE_NAME }}
-                  tags: |
-                      type=raw,value=latest,enable=${{ github.event_name != 'pull_request_target' }}
-                      type=raw,value=pr-${{ github.event.pull_request.number }},enable=${{ github.event_name == 'pull_request_target' }}
-
-            - name: Build and push node build image
-              uses: depot/build-push-action@v1
-              with:
-                  context: .
-                  file: Dockerfile-build-node
-                  platforms: linux/amd64,linux/arm64
-                  push: ${{ github.event_name != 'pull_request_target' }}
-                  tags: ${{ steps.node-build-meta.outputs.tags }}
-                  sbom: true
-                  provenance: true
-
-            - name: Go build image metadata
-              id: go-build-meta
-              uses: docker/metadata-action@v5
-              with:
-                  images: ${{ env.GO_BUILD_IMAGE_NAME }}
-                  tags: |
-                      type=raw,value=latest,enable=${{ github.event_name != 'pull_request_target' }}
-                      type=raw,value=pr-${{ github.event.pull_request.number }},enable=${{ github.event_name == 'pull_request_target' }}
-
-            - name: Build and push go build image
-              uses: depot/build-push-action@v1
-              with:
-                  context: .
-                  file: Dockerfile-build-go
-                  platforms: linux/amd64,linux/arm64
-                  push: ${{ github.event_name != 'pull_request_target' }}
-                  tags: ${{ steps.go-build-meta.outputs.tags }}
-                  sbom: true
+                  sbom: false
                   provenance: true
