@@ -15,18 +15,32 @@ RUN apt-get update \
         tar \
         tzdata \
     && mkdir -p /runtime-root \
+    && normalize_dest_path() { \
+        path="$1"; \
+        case "${path}" in \
+            /bin) printf '%s\n' /usr/bin ;; \
+            /bin/*) printf '/usr/bin/%s\n' "${path#/bin/}" ;; \
+            /sbin) printf '%s\n' /usr/sbin ;; \
+            /sbin/*) printf '/usr/sbin/%s\n' "${path#/sbin/}" ;; \
+            /lib) printf '%s\n' /usr/lib ;; \
+            /lib/*) printf '/usr/lib/%s\n' "${path#/lib/}" ;; \
+            *) printf '%s\n' "${path}" ;; \
+        esac; \
+    } \
     && copy_path() { \
         path="$1"; \
         if [ -e "${path}" ]; then \
-            mkdir -p "/runtime-root$(dirname "${path}")"; \
-            cp -aL "${path}" "/runtime-root${path}"; \
+            dest_path="$(normalize_dest_path "${path}")"; \
+            mkdir -p "/runtime-root$(dirname "${dest_path}")"; \
+            cp -aL "${path}" "/runtime-root${dest_path}"; \
         fi; \
     } \
     && copy_tree() { \
         path="$1"; \
         if [ -e "${path}" ]; then \
-            mkdir -p "/runtime-root$(dirname "${path}")"; \
-            cp -a "${path}" "/runtime-root${path}"; \
+            dest_path="$(normalize_dest_path "${path}")"; \
+            mkdir -p "/runtime-root$(dirname "${dest_path}")"; \
+            cp -a "${path}" "/runtime-root${dest_path}"; \
         fi; \
     } \
     && runtime_bins="/usr/bin/curl /usr/bin/tar /usr/bin/gzip" \
