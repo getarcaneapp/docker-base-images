@@ -23,6 +23,8 @@ RUN apt-get update \
             /sbin/*) printf '/usr/sbin/%s\n' "${path#/sbin/}" ;; \
             /lib) printf '%s\n' /usr/lib ;; \
             /lib/*) printf '/usr/lib/%s\n' "${path#/lib/}" ;; \
+            /lib64) printf '%s\n' /usr/lib64 ;; \
+            /lib64/*) printf '/usr/lib64/%s\n' "${path#/lib64/}" ;; \
             *) printf '%s\n' "${path}" ;; \
         esac; \
     } \
@@ -46,16 +48,18 @@ RUN apt-get update \
     && for bin in ${runtime_bins}; do \
         copy_path "${bin}"; \
         ldd "${bin}" \
-            | awk '/=> \// { print $3 } /^\// { print $1 }' \
+            | awk '/=> \// { print $3 } /^[[:space:]]*\// { print $1 }' \
             | sort -u \
             | while read -r lib; do copy_path "${lib}"; done; \
     done \
-    && dpkg-query -L libdrm2 \
-        | while read -r path; do \
-            if [ -f "${path}" ] || [ -L "${path}" ]; then \
-                copy_path "${path}"; \
-            fi; \
-        done \
+    && for package in libc6 libdrm2; do \
+        dpkg-query -L "${package}" \
+            | while read -r path; do \
+                if [ -f "${path}" ] || [ -L "${path}" ]; then \
+                    copy_path "${path}"; \
+                fi; \
+            done; \
+    done \
     && copy_tree /usr/share/zoneinfo \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
