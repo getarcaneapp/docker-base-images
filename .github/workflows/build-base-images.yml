@@ -49,7 +49,7 @@ jobs:
 
             - name: Base image metadata
               id: base-meta
-              uses: docker/metadata-action@v5
+              uses: docker/metadata-action@v6
               with:
                   images: ${{ env.BASE_IMAGE_NAME }}
                   tags: |
