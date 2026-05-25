@@ -1,14 +1,13 @@
 # syntax=docker/dockerfile:1
 
-ARG DHI_BASE_IMAGE=dhi.io/debian-base:trixie
+ARG BASE_IMAGE=gcr.io/distroless/static-debian13:nonroot
 
 # Runtime deps are assembled in an apt-enabled stage, then copied into the
-# DHI base so downstream Arcane builds do not need dhi.io credentials.
+# distroless base so downstream Arcane builds do not need extra runtime deps.
 FROM debian:trixie-slim AS runtime-deps
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        ca-certificates \
         curl \
         gzip \
         libdrm2 \
@@ -57,12 +56,10 @@ RUN apt-get update \
                 copy_path "${path}"; \
             fi; \
         done \
-    && copy_tree /etc/ssl/certs \
-    && copy_tree /usr/share/ca-certificates \
     && copy_tree /usr/share/zoneinfo \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-FROM ${DHI_BASE_IMAGE}
+FROM ${BASE_IMAGE}
 
 COPY --from=runtime-deps /runtime-root/ /
