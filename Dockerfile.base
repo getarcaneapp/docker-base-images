@@ -6,15 +6,15 @@ ARG BASE_IMAGE=gcr.io/distroless/static-debian13:nonroot
 # distroless base so downstream Arcane builds do not need extra runtime deps.
 FROM debian:trixie-slim AS runtime-deps
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+RUN set -eu; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
         curl \
         gzip \
         libdrm2 \
-        tar \
-        tzdata \
-    && mkdir -p /runtime-root \
-    && normalize_dest_path() { \
+        tar; \
+    mkdir -p /runtime-root; \
+    normalize_dest_path() ( \
         path="$1"; \
         case "${path}" in \
             /bin) printf '%s\n' /usr/bin ;; \
@@ -27,42 +27,36 @@ RUN apt-get update \
             /lib64/*) printf '/usr/lib64/%s\n' "${path#/lib64/}" ;; \
             *) printf '%s\n' "${path}" ;; \
         esac; \
-    } \
-    && copy_path() { \
+    ); \
+    copy_path() ( \
         path="$1"; \
-        if [ -e "${path}" ]; then \
-            dest_path="$(normalize_dest_path "${path}")"; \
-            mkdir -p "/runtime-root$(dirname "${dest_path}")"; \
-            cp -aL "${path}" "/runtime-root${dest_path}"; \
+        if [ ! -e "${path}" ]; then \
+            printf 'Missing runtime file: %s\n' "${path}" >&2; \
+            exit 1; \
         fi; \
-    } \
-    && copy_tree() { \
-        path="$1"; \
-        if [ -e "${path}" ]; then \
-            dest_path="$(normalize_dest_path "${path}")"; \
-            mkdir -p "/runtime-root$(dirname "${dest_path}")"; \
-            cp -a "${path}" "/runtime-root${dest_path}"; \
+        dest_path="$(normalize_dest_path "${path}")"; \
+        mkdir -p "/runtime-root$(dirname "${dest_path}")"; \
+        cp -aL "${path}" "/runtime-root${dest_path}"; \
+    ); \
+    for binary in /usr/bin/curl /usr/bin/tar /usr/bin/gzip; do \
+        copy_path "${binary}"; \
+        ldd "${binary}" > /tmp/runtime-ldd; \
+        if grep -q 'not found' /tmp/runtime-ldd; then \
+            cat /tmp/runtime-ldd >&2; \
+            exit 1; \
         fi; \
-    } \
-    && runtime_bins="/usr/bin/curl /usr/bin/tar /usr/bin/gzip" \
-    && for bin in ${runtime_bins}; do \
-        copy_path "${bin}"; \
-        ldd "${bin}" \
-            | awk '/=> \// { print $3 } /^[[:space:]]*\// { print $1 }' \
-            | sort -u \
-            | while read -r lib; do copy_path "${lib}"; done; \
-    done \
-    && for package in libc6 libdrm2; do \
-        dpkg-query -L "${package}" \
-            | while read -r path; do \
-                if [ -f "${path}" ] || [ -L "${path}" ]; then \
-                    copy_path "${path}"; \
-                fi; \
-            done; \
-    done \
-    && copy_tree /usr/share/zoneinfo \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+        awk '/=> \// { print $3 } /^[[:space:]]*\// { print $1 }' \
+            /tmp/runtime-ldd > /tmp/runtime-libs; \
+        while IFS= read -r lib; do copy_path "${lib}"; done < /tmp/runtime-libs; \
+    done; \
+    for package in libc6 libdrm2; do \
+        dpkg-query -L "${package}" > /tmp/runtime-package-files; \
+        while IFS= read -r path; do \
+            if [ -f "${path}" ] || [ -L "${path}" ]; then \
+                copy_path "${path}"; \
+            fi; \
+        done < /tmp/runtime-package-files; \
+    done
 
 FROM ${BASE_IMAGE}
 
